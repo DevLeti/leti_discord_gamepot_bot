@@ -138,7 +138,7 @@ async def on_reaction_add(reaction, user):
         time_str = get_time(1)
         await new_schedule(root_channel,time_str, user)
     if str(reaction.emoji) == "2️⃣": #두시간후
-        msg = await reaction.message.channel.send("두시간 후 알림을 설정합니다.")
+        msg = await reaction.message.channel.send("두시간 후 팟을 설정합니다.")
         await asyncio.sleep(0.6) # 기다리고
         await msg.delete() # 보낸 메시지 삭제
         await reaction.message.delete()
