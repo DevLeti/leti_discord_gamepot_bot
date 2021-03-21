@@ -1,12 +1,12 @@
 import datetime
-import user
+import user_custom
 
 class schedule:
-    def __init__(self, who = user.user(), when = datetime.datetime.today(), what = "lol", participant = []):
+    def __init__(self, who = user_custom.user(), when = datetime.datetime.today(), what = "lol"):
         self.who = who # 누가 팟을 잡았는지, str
         self.when = when # 언제 팟이랑 게임을 할지, str = "yyyymmddhhmm"
         self.what = what # 무슨 게임을 할지, str
-        self.participant = participant # 누가 같이 할지 = ["user 클래스 인스턴스"]
+        self.participant = [] # 누가 같이 할지 = ["user 클래스 인스턴스"]
     
     # Setter
     def setter(self, who, when, what, participant):
@@ -44,27 +44,29 @@ class schedule:
         return self.participant
     def display_participant(self):
         participant_list = ""
-        print("참여자 : ",end="")
         p_size = len(self.participant)
-        for i in range(0, p_size):
-            participant_list = participant_list + self.participant[i].name
-            print(self.participant[i].name,end="")
-            if(i != p_size - 1):
-                participant_list = participant_list + ', '
-                print(", ",end="")
+        if(p_size == 0):
+            participant_list = "아무도 없어요!"
+        else:
+            for i in range(0, p_size):
+                participant_list = participant_list + self.participant[i].name
+                if(i != p_size - 1):
+                    participant_list = participant_list + ', '
+        return participant_list
             
     # 참여자 추가
-    def add_participant(self, new_participant):
-        if(new_participant in self.participant):
-            return False
-        else:
-            self.participant.append(new_participant)
-            return True
+    def add_participant(self, new_participant): # new_participant = user타입 인스턴스
+        for i in range(0,len(self.participant)) :
+            if(new_participant.d_id == self.participant[i].d_id):
+                print("이미 있음")
+                return False
+        self.participant.append(new_participant)
+        return True
     
-    def delete_participant(self, delete_participant):
+    def delete_participant(self, delete_participant): # delete_participant = user타입 인스턴스
         #delete_participant의 값은 디스코드id
-        if(delete_participant in self.participant):
-            self.participant.remove(self.participant.index(delete_participant))
-            return True 
-        else:
-            return False # 참여자에 제거할 차람 없음
+        for i in range(0,len(self.participant)) :
+            if(delete_participant.d_id == self.participant[i].d_id):
+                del self.participant[i]
+                return True
+        return False # 참여자에 제거할 사람이 없음
