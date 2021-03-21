@@ -1,9 +1,12 @@
+import datetime
+import user
+
 class schedule:
-    def __init__(self, who = "Jone Doe", when = "200011311230", what = "lol", participant = []):
+    def __init__(self, who = user.user(), when = datetime.datetime.today(), what = "lol", participant = []):
         self.who = who # 누가 팟을 잡았는지, str
         self.when = when # 언제 팟이랑 게임을 할지, str = "yyyymmddhhmm"
         self.what = what # 무슨 게임을 할지, str
-        self.participant = participant # 누가 같이 할지 = ["유저디스코드id값"]
+        self.participant = participant # 누가 같이 할지 = ["user 클래스 인스턴스"]
     
     # Setter
     def setter(self, who, when, what, participant):
@@ -11,8 +14,8 @@ class schedule:
         self.when = when # 언제 팟이랑 게임을 할지, str = "yyyymmddhhmm"
         self.what = what # 무슨 게임을 할지, str
         self.participant = participant # 누가 같이 할지 = ["유저디스코드id값"]
-    def set_who(self, name):
-        self.who = name
+    def set_who(self, user_type):
+        self.who = user_type
         return True
     def set_when(self, when):
         self.when = when
@@ -27,15 +30,29 @@ class schedule:
     # Getter
     def getter(self):
         return self
-    def get_who(self):
+    def who(self):
         return self.who
-    def get_when(self):
+    def name(self):
+        return self.who.name
+    def d_id(self):
+        return self.who.d_id
+    def when(self):
         return self.when
-    def get_what(self):
+    def what(self):
         return self.what
-    def get_participant(self):
+    def participant(self):
         return self.participant
-    
+    def display_participant(self):
+        participant_list = ""
+        print("참여자 : ",end="")
+        p_size = len(self.participant)
+        for i in range(0, p_size):
+            participant_list = participant_list + self.participant[i].name
+            print(self.participant[i].name,end="")
+            if(i != p_size - 1):
+                participant_list = participant_list + ', '
+                print(", ",end="")
+            
     # 참여자 추가
     def add_participant(self, new_participant):
         if(new_participant in self.participant):

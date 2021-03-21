@@ -18,10 +18,13 @@ from datetime import timedelta
 import discord_token
 import asyncio
 import discord
+
 import schedule
+import user
 
 def get_time(plus_hour):
     time = datetime.datetime.today() + timedelta(hours = plus_hour)
+    """
     time_str = str(time.year)
     
     if(time.month < 10):
@@ -46,7 +49,13 @@ def get_time(plus_hour):
     else:
         time_str = time_str + str(time.minute)
     return time_str
+    """
+    return time
 
+def parse_time(time):
+    beautiful_time = datetime.datetime.strptime(time,'%Y%m%d%H%M')
+    print(beautiful_time)
+    
 client = discord.Client()
 
 # 생성된 토큰을 입력해준다.
@@ -85,8 +94,11 @@ schedules = [] # element = [겜팟 Embed, 'schedule_element','생성유저 id']
 async def new_schedule(root_channel, time, root_user): #time = "yyyymmddHHMM", root_user = 밑에 root_user
     global schedules
     new = schedule.schedule()
-    new.set_when(time)
-    new.set_who(root_user)
+    new.set_when(time) #시간
+    
+    #여기가 문제인가?
+    new.set_who(user.user(root_user.name, root_user.id)) #팟 만든 사람
+    new.add_participant(user.user(root_user.name, root_user.id))#참여자에 만든사람 기본 탑재
     
     #본인확인
     def check(message):
@@ -94,7 +106,11 @@ async def new_schedule(root_channel, time, root_user): #time = "yyyymmddHHMM", r
     
     # 게임이름 받기
     try:
-        notice1 = await root_channel.send("어떤 게임을 하실 건가요?\n'게임이름'만 알려주세요")
+        question = discord.Embed(title="같이 할 게임을 알려주세요!\n")
+        question.set_footer(text="'게임이름'만 알려주세요!")
+        notice1 = await root_channel.send(embed = question)
+        
+        # notice1 = await root_channel.send("어떤 게임을 하실 건가요?\n'게임이름'만 알려주세요")
         message = await client.wait_for('message', timeout = 20.0, check = check)
     except asyncio.TimeoutError:
         notice2 = await root_channel.send("시간 초과로 취소됩니다.")
@@ -104,13 +120,13 @@ async def new_schedule(root_channel, time, root_user): #time = "yyyymmddHHMM", r
     else:
         await notice1.delete()
         new.set_what(message.content)
-        new.add_participant(message.author)
         
         # 팟 올리기!
         embed = discord.Embed(title="*팟 모집중!*", color=0xf88379)
-        embed.add_field(name="팟을 연 사람", value=root_user.name, inline=False)
-        embed.add_field(name="어떤 게임?", value=new.get_what(), inline=False)
-        embed.add_field(name="몇시에 할까요?", value=new.get_when(), inline=False)
+        embed.add_field(name="팟을 연 사람", value=new.name(), inline=False)
+        embed.add_field(name="어떤 게임?", value=new.what, inline=False)
+        embed.add_field(name="몇시에 할까요?", value=new.when.strftime("%Y년 %m월 %d일 %H시 %M분"), inline=False)
+        embed.add_field(name="누가 참여하나요?", value=new.display_participant(), inline=False)
         embed.set_footer(text='참여는 밑의 👍를 눌러주세요!')
         msg = await message.channel.send(embed=embed)
         await msg.add_reaction("👍") #step
@@ -144,7 +160,7 @@ async def on_reaction_add(reaction, user):
         await reaction.message.delete()
         time_str = get_time(2)
         await new_schedule(root_channel, time_str, user)
-    if str(reaction.emoji) == "": #팟 인원 추가!
+    if str(reaction.emoji) == "👍": #팟 인원 추가!
         # TODO
         # 구현하기
         return None
