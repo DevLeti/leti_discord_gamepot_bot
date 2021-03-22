@@ -45,7 +45,7 @@ def parse_time(time):
 
 client = discord.Client()
 
-# 생성된 토큰을 입력해준다.
+# 생성된 토큰을 입력해준다. 유출되면 안되므로 외부에서 끌어오기.
 token = discord_token.token
 
 # 봇이 구동되었을 때 보여지는 코드
@@ -80,7 +80,7 @@ async def on_message(message):
 
 ############################################################################
 # 팟 추가
-schedules = [] # element = [팟모집 msg의 id, 'schedule_element','생성유저 id']
+schedules = [] # element = [팟모집 msg, 'schedule_element','생성유저 id']
 async def new_schedule(root_channel, time, root_user): #time = "yyyymmddHHMM", root_user = 밑에 root_user
     
     print("팟 추가 함수 접근")
@@ -103,12 +103,11 @@ async def new_schedule(root_channel, time, root_user): #time = "yyyymmddHHMM", r
         question.set_footer(text="'게임이름'만 알려주세요!")
         notice1 = await root_channel.send(embed = question)
         
-        # notice1 = await root_channel.send("어떤 게임을 하실 건가요?\n'게임이름'만 알려주세요")
-        message = await client.wait_for('message', timeout = 20.0, check = check)
+        message = await client.wait_for('message', timeout = 10.0, check = check) # 20
     except asyncio.TimeoutError:
-        message.delete()
-        notice2 = await root_channel.send("시간 초과로 취소됩니다.")
-        await asyncio.sleep(300)
+         
+        notice2 = await root_channel.send("시간 초과로 취소되었습니다.")
+        await asyncio.sleep(25) # 300
         await notice1.delete()
         await notice2.delete()
     else:
@@ -130,8 +129,8 @@ async def new_schedule(root_channel, time, root_user): #time = "yyyymmddHHMM", r
         # print(root_user.id)
         # print(root_user.name)
         
-        schedules.append([msg.id, new, message.author.id]) 
-        print(schedules)
+        schedules.append([msg, new, message.author.id]) 
+        print("스케쥴 추가됨, ", schedules)
 ############################################################################
 
 ############################################################################
@@ -160,7 +159,7 @@ async def on_reaction_add(reaction, user):
         await new_schedule(root_channel, time_str, user)
     if str(reaction.emoji) == "👍": #팟 인원 추가!
         for schedule in schedules:
-            if(reaction.message.id == schedule[0]):
+            if(reaction.message.id == schedule[0].id):
                 print("팟 찾음")
                 print(reaction.message.author.name)
                 print(reaction.message.author.id)
@@ -185,17 +184,16 @@ async def on_raw_reaction_remove(raw_reaction_event):
     ###############################################
     # raw말고 on_reaction_remove는 왜 반응이 없을까? # -> cache 뮈시기가 있는데... 해석해야함
     ###############################################
-    # 아 뭔가 이거 아닌데...
     
-    print("반응 제거 확인")
-    print("👍")
+    # print("반응 제거 확인")
+    # print("👍")
     if str(raw_reaction_event.emoji) == '👍':
         #반응이 삭제되었을 때!
         message_id = raw_reaction_event.message_id
         user_id = raw_reaction_event.user_id
         for schedule in schedules:
-            if(raw_reaction_event.message_id == schedule[0]):
-                print("팟 찾음")
+            if(raw_reaction_event.message_id == schedule[0].id):
+                # print("팟 찾음")
                 delete_participant = user_custom.user("Jone Doe", user_id) #이름은 상관X id만 있으면 됨
                 schedule[1].delete_participant(delete_participant)
                 embed = discord.Embed(title="*팟 모집중!*", color=0xf88379)
@@ -205,11 +203,14 @@ async def on_raw_reaction_remove(raw_reaction_event):
                 embed.add_field(name="누가 참여하나요?", value=schedule[1].display_participant(), inline=False)
                 embed.set_footer(text='참여는 밑의 👍를 눌러주세요!')
                 
+                await schedule[0].edit(embed=embed)
+                
                 ##################
                 #구현 해야할 부분!!#
                 ##################
                 # message_id와 embed를 가지고 메세지를 수정해야 할 때, webhook을 이용해야 할까?
-                # webhook을 사용할 때, webhook url이 public이어도 괜찮은가?
+                # webhook을 사용할 때 webhook url이 public이어선 안된다. 외부모듈로 끌어오고 gitignore해야함.
+                # schedules에 넣은 element를 msg.id가 아닌 msg로 변경해서 해결함.
                 
                 # async with aiohttp.ClientSession() as session:
                 #     webhook = Webhook.from_url('url-here', adapter=AsyncWebhookAdapter(session))
