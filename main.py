@@ -23,9 +23,7 @@ import discord_token
 
 #디스코드 봇을 위한 모듈
 import asyncio
-import discord
-from discord import Webhook, AsyncWebhookAdapter
-import aiohttp
+import discord 
 
 # 제작한 클래스들
 import schedule
@@ -33,9 +31,18 @@ import user_custom
 ############################################################################
 
 ############################################################################
+#schedule들이 들어있는 array.
+# schedules array에 들어가는 element : [팟모집 msg, schedule_element, 생성유저 id]
+# 팟모집 msg의 instance type : discord.Message
+# schedule_element의 instace type : schedule.schedule
+# 생성유저 고유 디스코드id의 instance type : string
+schedules = [] 
+############################################################################
+
+############################################################################
 # 시간 계산 함수
 def get_time(plus_hour):
-    time = datetime.datetime.today() + timedelta(hours = plus_hour)
+    time = datetime.datetime.today() + timedelta(hours = plus_hour) 
     return time
 
 def parse_time(time):
@@ -80,7 +87,6 @@ async def on_message(message):
 
 ############################################################################
 # 팟 추가
-schedules = [] # element = [팟모집 msg, 'schedule_element','생성유저 id']
 async def new_schedule(root_channel, time, root_user): #time = "yyyymmddHHMM", root_user = 밑에 root_user
     
     print("팟 추가 함수 접근")
@@ -160,9 +166,9 @@ async def on_reaction_add(reaction, user):
     if str(reaction.emoji) == "👍": #팟 인원 추가!
         for schedule in schedules:
             if(reaction.message.id == schedule[0].id):
-                print("팟 찾음")
-                print(reaction.message.author.name)
-                print(reaction.message.author.id)
+                # print("팟 찾음")
+                # print(reaction.message.author.name) # 만든사람 닉네임
+                # print(reaction.message.author.id) # 만든사람 고유 discord id
                 new_participant = user_custom.user(user.name, user.id)
                 schedule[1].add_participant(new_participant)
                 embed = discord.Embed(title="*팟 모집중!*", color=0xf88379)
@@ -219,6 +225,83 @@ async def on_raw_reaction_remove(raw_reaction_event):
     return None
 ############################################################################
 
+############################################################################
+# 1분마다 1시간, 30분, 15분, 10분, 5분, 마감 상태일 때 그 embed를 그대로 복사해서
+# 해당 schedule[0] (msg)를 삭제 후 새로 보낸 msg를 남은 시간과 함께 보내기
+# 
+
+
+def check_time(pot_time):
+    ################
+    # 함수 검증 필요 #
+    ################
+    
+    #################################################################
+    # pot_time의 instance type은 datetime.datetime
+    # datetime.datetime 끼리 빼면 return value는 datetime.timedelta
+    # 그러면 datetime.timedelta(60 30 15 10 5) 각각 이퀄 확인하면 될듯?
+    #################################################################
+    
+    now = datetime.datetime.today()
+    if(schedule - now == datetime.timedelta(minutes = 60)):
+        return 60
+    elif(schedule - now == datetime.timedelta(minutes = 30)):
+        return 30
+    elif(schedule - now == datetime.timedelta(minutes = 10)):
+        return 10
+    elif(schedule - now == datetime.timedelta(minutes = 5)):
+        return 5
+    else:
+        # 남은 분
+        remain_minute = int((schedule - now).total_seconds()/60)
+        return remain_minute
+
+async def my_background_task():
+    ################
+    # 함수 검증 필요 #
+    ################
+    await client.wait_until_ready()
+    #schedule들이 들어있는 array를 순회하며 60/30/10/5분 후 마감이 되는 팟을 찾는 함수
+    
+    if len(schedules) == 0: #schedule이 하나도 없으면
+        return None
+    
+    # schedules array에 들어가는 element : [팟모집 msg, schedule_element, 생성유저 id]
+    for i in range (0, len(schedules)):
+        pot_time = schedule[i][1].when() # datetime.datetime
+        remain_minute = check_time(pot_time)
+        if remain_minute == 0 or remain_minute == 30 or remain_minute == 10 or remain_minute == 5: # 60/30/15/10/5분 전
+            # msg = await message.channel.send(embed=embed)
+            # 해당 메시지 embed 가져와서
+            embed = schedule[i][0].embed
+            # 팟 마감 남은시간 메시지 추가하고
+            content = "팟이 " + str(check_time(pot_time)) + "분 후에 마감돼요!"
+            
+            # 메시지를 보낸 다음에
+            new_msg = await schedule[i][0].channel.send(content = content,embed=embed)
+            # 기존 메시지 삭제
+            await schedule[i][0].delete()
+            # 기존 메시지에 들어가는 곳에 new_msg로 갈아끼우기
+            schedule[i][0] = new_msg
+        elif remain_minute == 0: # 마감!!
+            # msg = await message.channel.send(embed=embed)
+            # 해당 메시지 embed 가져와서
+            embed = schedule[i][0].embed
+            # 팟 마감 남은시간 메시지 추가하고
+            content = "팟이 마감되었어요! 참가 신청은 가능하며, 메시지는 5분 후 사라져요!"
+            # 메시지를 보낸 다음에
+            new_msg = await schedule[i][0].channel.send(content = content,embed=embed)
+            # 기존 메시지 삭제
+            await schedule[i][0].delete()
+            # 기존 메시지에 들어가는 곳에 new_msg로 갈아끼우기
+            schedule[i][0] = new_msg
+        elif remain_minute <= -5: # 1분 이상 지난 경우
+            await schedule[i][0].delete()
+            schedules.remove(schedule[i])
+            i = i - 1
+    await asyncio.sleep(60) #1분마다 이 함수 돌기
+
+client.loop.create_task(my_background_task())
 client.run(token) # 구동
 
 """
@@ -236,4 +319,4 @@ client.run(token) # 구동
         except asyncio.TimeoutError:
             # some action code when get emoji timeout
             return
-        """
+"""
