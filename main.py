@@ -24,6 +24,7 @@ import discord_token
 #디스코드 봇을 위한 모듈
 import asyncio
 import discord 
+from discord.ext import commands, tasks
 
 # 제작한 클래스들
 import schedule
@@ -42,7 +43,7 @@ schedules = []
 ############################################################################
 # 시간 계산 함수
 def get_time(plus_hour):
-    time = datetime.datetime.today() + timedelta(hours = plus_hour) 
+    time = datetime.datetime.today() + timedelta(minutes = plus_hour) 
     return time
 
 def parse_time(time):
@@ -62,6 +63,7 @@ async def on_ready():
     print(client.user.name)
     print(client.user.id)
     print("================")
+    my_background_task.start()
 
 ############################################################################
 # 봇이 특정 메세지를 받고 인식하는 코드
@@ -83,6 +85,8 @@ async def on_message(message):
         msg = await message.channel.send(embed=embed)
         await msg.add_reaction("1️⃣") #step
         await msg.add_reaction("2️⃣") #stun
+        await msg.add_reaction("😀") #stun
+        
 ############################################################################
 
 ############################################################################
@@ -154,14 +158,21 @@ async def on_reaction_add(reaction, user):
         await asyncio.sleep(0.6) # 기다리고
         await msg.delete() # 보낸 메시지 삭제
         await reaction.message.delete()
-        time_str = get_time(1)
+        time_str = get_time(60)
         await new_schedule(root_channel,time_str, user)
     if str(reaction.emoji) == "2️⃣": #두시간후
         msg = await reaction.message.channel.send("두시간 후 팟을 설정합니다.")
         await asyncio.sleep(0.6) # 기다리고
         await msg.delete() # 보낸 메시지 삭제
         await reaction.message.delete()
-        time_str = get_time(2)
+        time_str = get_time(120)
+        await new_schedule(root_channel, time_str, user)
+    if str(reaction.emoji) == "😀": #1분후
+        msg = await reaction.message.channel.send("1분 후 팟을 설정합니다.")
+        await asyncio.sleep(0.6) # 기다리고
+        await msg.delete() # 보낸 메시지 삭제
+        await reaction.message.delete()
+        time_str = get_time(1)
         await new_schedule(root_channel, time_str, user)
     if str(reaction.emoji) == "👍": #팟 인원 추가!
         for schedule in schedules:
@@ -243,24 +254,26 @@ def check_time(pot_time):
     #################################################################
     
     now = datetime.datetime.today()
-    if(schedule - now == datetime.timedelta(minutes = 60)):
+    if(pot_time - now == datetime.timedelta(minutes = 60)):
         return 60
-    elif(schedule - now == datetime.timedelta(minutes = 30)):
+    elif(pot_time - now == datetime.timedelta(minutes = 30)):
         return 30
-    elif(schedule - now == datetime.timedelta(minutes = 10)):
+    elif(pot_time - now == datetime.timedelta(minutes = 10)):
         return 10
-    elif(schedule - now == datetime.timedelta(minutes = 5)):
+    elif(pot_time - now == datetime.timedelta(minutes = 5)):
         return 5
     else:
         # 남은 분
-        remain_minute = int((schedule - now).total_seconds()/60)
+        remain_minute = int((pot_time - now).total_seconds()/60)
         return remain_minute
-
+    
+@tasks.loop(seconds=30)
 async def my_background_task():
     ################
     # 함수 검증 필요 #
     ################
     await client.wait_until_ready()
+    print("background task 함수 접근")
     #schedule들이 들어있는 array를 순회하며 60/30/10/5분 후 마감이 되는 팟을 찾는 함수
     
     if len(schedules) == 0: #schedule이 하나도 없으면
@@ -268,40 +281,48 @@ async def my_background_task():
     
     # schedules array에 들어가는 element : [팟모집 msg, schedule_element, 생성유저 id]
     for i in range (0, len(schedules)):
-        pot_time = schedule[i][1].when() # datetime.datetime
+        pot_time = schedules[i][1].when # datetime.datetime
         remain_minute = check_time(pot_time)
-        if remain_minute == 0 or remain_minute == 30 or remain_minute == 10 or remain_minute == 5: # 60/30/15/10/5분 전
+        
+        # 끝난 팟이면 5분 지났는 지만 확인
+        if(schedules[i][1].ended):
+            if remain_minute <= -5: # 5분 이상 지난 경우
+                await schedules[i][0].delete()
+                schedules.remove(schedules[i])
+                i = i - 1
+                continue
+        
+        # 끝난 팟이 아니면 남은 시간 확인 후 알림
+        if remain_minute == 60 or remain_minute == 30 or remain_minute == 10 or remain_minute == 5: # 60/30/15/10/5분 전
             # msg = await message.channel.send(embed=embed)
             # 해당 메시지 embed 가져와서
-            embed = schedule[i][0].embed
+            embed = schedules[i][0].embeds[0]
             # 팟 마감 남은시간 메시지 추가하고
             content = "팟이 " + str(check_time(pot_time)) + "분 후에 마감돼요!"
             
             # 메시지를 보낸 다음에
-            new_msg = await schedule[i][0].channel.send(content = content,embed=embed)
+            new_msg = await schedules[i][0].channel.send(content = content,embed=embed)
             # 기존 메시지 삭제
-            await schedule[i][0].delete()
+            await schedules[i][0].delete()
             # 기존 메시지에 들어가는 곳에 new_msg로 갈아끼우기
-            schedule[i][0] = new_msg
+            schedules[i][0] = new_msg
+            
         elif remain_minute == 0: # 마감!!
             # msg = await message.channel.send(embed=embed)
             # 해당 메시지 embed 가져와서
-            embed = schedule[i][0].embed
+            embed = schedules[i][0].embeds[0]
             # 팟 마감 남은시간 메시지 추가하고
             content = "팟이 마감되었어요! 참가 신청은 가능하며, 메시지는 5분 후 사라져요!"
             # 메시지를 보낸 다음에
-            new_msg = await schedule[i][0].channel.send(content = content,embed=embed)
+            new_msg = await schedules[i][0].channel.send(content=content, embed=embed)
+            await new_msg.add_reaction("👍")
             # 기존 메시지 삭제
-            await schedule[i][0].delete()
+            await schedules[i][0].delete()
             # 기존 메시지에 들어가는 곳에 new_msg로 갈아끼우기
-            schedule[i][0] = new_msg
-        elif remain_minute <= -5: # 1분 이상 지난 경우
-            await schedule[i][0].delete()
-            schedules.remove(schedule[i])
-            i = i - 1
-    await asyncio.sleep(60) #1분마다 이 함수 돌기
+            schedules[i][0] = new_msg
+            # 마감 되었다고 상태 바꾸기
+            schedules[i][1].ended = True
 
-client.loop.create_task(my_background_task())
 client.run(token) # 구동
 
 """

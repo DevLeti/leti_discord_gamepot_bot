@@ -2,11 +2,12 @@ import datetime
 import user_custom
 
 class schedule:
-    def __init__(self, who = user_custom.user(), when = datetime.datetime.today(), what = "lol"):
+    def __init__(self, who = user_custom.user(), when = datetime.datetime.today(), what = "lol", ended = False):
         self.who = who # 누가 팟을 잡았는지, str
-        self.when = when # 언제 팟이랑 게임을 할지, str = "yyyymmddhhmm"
+        self.when = when # 언제 팟이랑 게임을 할지, datime.datetime
         self.what = what # 무슨 게임을 할지, str
         self.participant = [] # 누가 같이 할지 = ["user 클래스 인스턴스"]
+        self.ended = ended # 마감 여부 = False
     
     # Setter
     def setter(self, who, when, what, participant):
@@ -26,6 +27,9 @@ class schedule:
     def set_participant(self, participant):
         self.participant = participant
         return True
+    def set_ended(self, ended):
+        self.ended = ended
+        return True
     
     # Getter
     def getter(self):
@@ -42,6 +46,8 @@ class schedule:
         return self.what
     def participant(self):
         return self.participant
+    def ended(self):
+        return self.ended
     def display_participant(self):
         participant_list = ""
         p_size = len(self.participant)
