@@ -90,6 +90,24 @@ async def on_message(message):
 ############################################################################
 
 ############################################################################
+# 팟 embed 생성 함수
+def make_pot_embed(schedule):
+    embed = discord.Embed(title="*팟 모집중!*", color=0xf88379)
+    embed.add_field(name="팟을 연 사람", value=schedule.name(), inline=False)
+    embed.add_field(name="어떤 게임?", value=schedule.what, inline=False)
+    embed.add_field(name="몇시에 할까요?", value=schedule.when.strftime("%Y년 %m월 %d일 %H시 %M분"), inline=False)
+    embed.add_field(name="누가 참여하나요?", value=schedule.display_participant(), inline=False)
+    embed.set_footer(text='참여는 밑의 👍를 눌러주세요!')
+    return embed
+
+def make_ended_pot_embed(schedule):
+    embed = discord.Embed(title="*마감된 팟!*", color=0xf88379)
+    embed.add_field(name="팟을 연 사람", value=schedule.name(), inline=False)
+    embed.add_field(name="어떤 게임?", value=schedule.what, inline=False)
+    embed.add_field(name="몇시에 할까요?", value=schedule.when.strftime("%Y년 %m월 %d일 %H시 %M분"), inline=False)
+    embed.add_field(name="누가 참여하나요?", value=schedule.display_participant(), inline=False)
+    embed.set_footer(text='마감된 팟의 추가 참여는 불가해요😢')
+    return embed
 # 팟 추가
 async def new_schedule(root_channel, time, root_user): #time = "yyyymmddHHMM", root_user = 밑에 root_user
     
@@ -126,12 +144,15 @@ async def new_schedule(root_channel, time, root_user): #time = "yyyymmddHHMM", r
         new.set_what(message.content)
         
         # 팟 올리기!
+        embed = make_pot_embed(new)
+        """
         embed = discord.Embed(title="*팟 모집중!*", color=0xf88379)
         embed.add_field(name="팟을 연 사람", value=new.name(), inline=False)
         embed.add_field(name="어떤 게임?", value=new.what, inline=False)
         embed.add_field(name="몇시에 할까요?", value=new.when.strftime("%Y년 %m월 %d일 %H시 %M분"), inline=False)
         embed.add_field(name="누가 참여하나요?", value="아직 없어요!", inline=False)
         embed.set_footer(text='참여는 밑의 👍를 눌러주세요!')
+        """
         msg = await message.channel.send(embed=embed)
         await msg.add_reaction("👍") #step
         
@@ -182,12 +203,7 @@ async def on_reaction_add(reaction, user):
                 # print(reaction.message.author.id) # 만든사람 고유 discord id
                 new_participant = user_custom.user(user.name, user.id)
                 schedule[1].add_participant(new_participant)
-                embed = discord.Embed(title="*팟 모집중!*", color=0xf88379)
-                embed.add_field(name="팟을 연 사람", value=schedule[1].name(), inline=False)
-                embed.add_field(name="어떤 게임?", value=schedule[1].what, inline=False)
-                embed.add_field(name="몇시에 할까요?", value=schedule[1].when.strftime("%Y년 %m월 %d일 %H시 %M분"), inline=False)
-                embed.add_field(name="누가 참여하나요?", value=schedule[1].display_participant(), inline=False)
-                embed.set_footer(text='참여는 밑의 👍를 눌러주세요!')
+                embed = make_pot_embed(schedule[1])
                 await reaction.message.edit(embed=embed)
         # TODO
         # 구현하기
@@ -201,7 +217,6 @@ async def on_raw_reaction_remove(raw_reaction_event):
     ###############################################
     # raw말고 on_reaction_remove는 왜 반응이 없을까? # -> cache 뮈시기가 있는데... 해석해야함
     ###############################################
-    
     # print("반응 제거 확인")
     # print("👍")
     if str(raw_reaction_event.emoji) == '👍':
@@ -213,26 +228,8 @@ async def on_raw_reaction_remove(raw_reaction_event):
                 # print("팟 찾음")
                 delete_participant = user_custom.user("Jone Doe", user_id) #이름은 상관X id만 있으면 됨
                 schedule[1].delete_participant(delete_participant)
-                embed = discord.Embed(title="*팟 모집중!*", color=0xf88379)
-                embed.add_field(name="팟을 연 사람", value=schedule[1].name(), inline=False)
-                embed.add_field(name="어떤 게임?", value=schedule[1].what, inline=False)
-                embed.add_field(name="몇시에 할까요?", value=schedule[1].when.strftime("%Y년 %m월 %d일 %H시 %M분"), inline=False)
-                embed.add_field(name="누가 참여하나요?", value=schedule[1].display_participant(), inline=False)
-                embed.set_footer(text='참여는 밑의 👍를 눌러주세요!')
-                
+                embed = make_pot_embed(schedule[1])
                 await schedule[0].edit(embed=embed)
-                
-                ##################
-                #구현 해야할 부분!!#
-                ##################
-                # message_id와 embed를 가지고 메세지를 수정해야 할 때, webhook을 이용해야 할까?
-                # webhook을 사용할 때 webhook url이 public이어선 안된다. 외부모듈로 끌어오고 gitignore해야함.
-                # schedules에 넣은 element를 msg.id가 아닌 msg로 변경해서 해결함.
-                
-                # async with aiohttp.ClientSession() as session:
-                #     webhook = Webhook.from_url('url-here', adapter=AsyncWebhookAdapter(session))
-                #     await webhook.edit_message(message_id=message_id, embed=embed)
-                # await reaction.message.edit(embed=embed)
     return None
 ############################################################################
 
@@ -284,19 +281,19 @@ async def my_background_task():
         pot_time = schedules[i][1].when # datetime.datetime
         remain_minute = check_time(pot_time)
         
-        # 끝난 팟이면 5분 지났는 지만 확인
-        if(schedules[i][1].ended):
-            if remain_minute <= -5: # 5분 이상 지난 경우
-                await schedules[i][0].delete()
-                schedules.remove(schedules[i])
-                i = i - 1
-                continue
+        # 팟이 마감이 되었고 5분 지났는 지 확인
+        if schedules[i][1].ended and remain_minute <= -5:
+            await schedules[i][0].delete()
+            schedules.remove(schedules[i])
+            i = i - 1
+            continue
         
         # 끝난 팟이 아니면 남은 시간 확인 후 알림
         if remain_minute == 60 or remain_minute == 30 or remain_minute == 10 or remain_minute == 5: # 60/30/15/10/5분 전
             # msg = await message.channel.send(embed=embed)
             # 해당 메시지 embed 가져와서
-            embed = schedules[i][0].embeds[0]
+            embed = make_pot_embed(schedules[i][1])
+            # schedules[i][0].embeds[0]
             # 팟 마감 남은시간 메시지 추가하고
             content = "팟이 " + str(check_time(pot_time)) + "분 후에 마감돼요!"
             
@@ -307,15 +304,14 @@ async def my_background_task():
             # 기존 메시지에 들어가는 곳에 new_msg로 갈아끼우기
             schedules[i][0] = new_msg
             
-        elif remain_minute == 0: # 마감!!
-            # msg = await message.channel.send(embed=embed)
+        elif remain_minute == 0 and not schedules[i][1].ended: # 마감!!
             # 해당 메시지 embed 가져와서
-            embed = schedules[i][0].embeds[0]
+            embed = make_ended_pot_embed(schedules[i][1])
             # 팟 마감 남은시간 메시지 추가하고
-            content = "팟이 마감되었어요! 참가 신청은 가능하며, 메시지는 5분 후 사라져요!"
+            content = "팟이 마감되었어요!\n메시지는 5분 후 사라져요!"
             # 메시지를 보낸 다음에
             new_msg = await schedules[i][0].channel.send(content=content, embed=embed)
-            await new_msg.add_reaction("👍")
+            # await new_msg.add_reaction("👍")
             # 기존 메시지 삭제
             await schedules[i][0].delete()
             # 기존 메시지에 들어가는 곳에 new_msg로 갈아끼우기

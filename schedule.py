@@ -49,6 +49,7 @@ class schedule:
     def ended(self):
         return self.ended
     def display_participant(self):
+        print("display_participant 진입")
         participant_list = ""
         p_size = len(self.participant)
         if(p_size == 0):
@@ -58,21 +59,29 @@ class schedule:
                 participant_list = participant_list + self.participant[i].name
                 if(i != p_size - 1):
                     participant_list = participant_list + ', '
+        print(participant_list)
         return participant_list
             
     # 참여자 추가
     def add_participant(self, new_participant): # new_participant = user타입 인스턴스
-        for i in range(0,len(self.participant)) :
-            if(new_participant.d_id == self.participant[i].d_id):
-                print("이미 있음")
-                return False
-        self.participant.append(new_participant)
-        return True
+        if not self.ended:
+            for i in range(0,len(self.participant)) :
+                if(new_participant.d_id == self.participant[i].d_id):
+                    print("이미 있음")
+                    return False
+            self.participant.append(new_participant)
+            return True
+        else:
+            print("팟 마감으로 추가 불가")
     
     def delete_participant(self, delete_participant): # delete_participant = user타입 인스턴스
-        #delete_participant의 값은 디스코드id
-        for i in range(0,len(self.participant)) :
-            if(delete_participant.d_id == self.participant[i].d_id):
-                del self.participant[i]
-                return True
-        return False # 참여자에 제거할 사람이 없음
+        if not self.ended:
+            #delete_participant의 값은 디스코드id
+            for i in range(0,len(self.participant)) :
+                if(delete_participant.d_id == self.participant[i].d_id):
+                    del self.participant[i]
+                    return True
+            return False # 참여자에 제거할 사람이 없음
+        else:
+            print("팟 마감으로 제거 불가")
+            return False
