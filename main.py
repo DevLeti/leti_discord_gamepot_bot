@@ -48,7 +48,7 @@ def get_time(plus_hour):
 
 def parse_time(time):
     beautiful_time = datetime.datetime.strptime(time,'%Y%m%d%H%M')
-    print(beautiful_time)
+    return beautiful_time
 ############################################################################
 
 client = discord.Client()
@@ -82,6 +82,7 @@ async def on_message(message):
         embed = discord.Embed(title="시간 설정",description="몇 시간 후가 좋을까요?", color=0x00aaaa)
         embed.add_field(name="1", value="1시간 후 설정", inline=False)
         embed.add_field(name="2", value="2시간 후 실행", inline=False)
+        embed.add_field(name="😀", value="직접설정", inline=False)
         msg = await message.channel.send(embed=embed)
         await msg.add_reaction("1️⃣") #step
         await msg.add_reaction("2️⃣") #stun
@@ -90,6 +91,54 @@ async def on_message(message):
 ############################################################################
 
 ############################################################################
+# 상세시간 설정 함수
+async def set_custom_time(root_channel, root_user):
+     # 게임이름 받기
+    try:
+        question = discord.Embed(title="팟 시간을 알려주세요!\n")
+        question.set_footer(text="yymmddHHMM(연/월/일/시간/분)\n형식으로 알려주세요!\n예)2104251340 : 2021년4월25일13시40분")
+        time_question_message = await root_channel.send(embed = question)
+        
+        def check(message):
+            return root_user == message.author
+    
+        message = await client.wait_for('message', timeout = 60.0, check = check) # 20
+        
+    except asyncio.TimeoutError:
+        time_out_message = await root_channel.send("시간 초과로 취소되었습니다.")
+        await asyncio.sleep(25) # 300
+        await time_question_message.delete()
+        await time_out_message.delete()
+    else:
+        time_str = message.content
+        await message.delete()
+        await time_question_message.delete()
+        
+        try:
+            if(len(time_str) != 10): #2104251340 <- 길이가 안맞음 -> 잘못입력
+                msg = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
+                await asyncio.sleep(2)
+                await msg.delete()
+                await set_custom_time(root_channel, root_user)
+
+            print('time_str : ', time_str)
+            time_instance = parse_time('20' + time_str) # datetime.datetime 타입으로 변환
+            now = datetime.datetime.today()
+            check_minute = int((time_instance - now).total_seconds()/60) # 서버시간이랑 비교
+            if(check_minute < 0): # 과거 - 현재 = 음수이므로 음수면 잘못 입력한것임.
+                msg = await root_channel.send("앗! 전 도르마무가 아니에요!\n과거 팟을 만들 수 없어요!\n다시 입력받겠습니다!")
+                await asyncio.sleep(2)
+                await msg.delete()
+                await set_custom_time(root_channel, root_user)
+
+            # 정상 입력됨
+            return time_instance
+        except:
+            msg = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
+            await asyncio.sleep(2)
+            await msg.delete()
+            await set_custom_time(root_channel, root_user)
+
 # 팟 embed 생성 함수
 def make_pot_embed(schedule):
     embed = discord.Embed(title="*팟 모집중!*", color=0xf88379)
@@ -131,7 +180,7 @@ async def new_schedule(root_channel, time, root_user): #time = "yyyymmddHHMM", r
         question.set_footer(text="'게임이름'만 알려주세요!")
         notice1 = await root_channel.send(embed = question)
         
-        message = await client.wait_for('message', timeout = 10.0, check = check) # 20
+        message = await client.wait_for('message', timeout = 15.0, check = check) # 20
     except asyncio.TimeoutError:
          
         notice2 = await root_channel.send("시간 초과로 취소되었습니다.")
@@ -145,14 +194,6 @@ async def new_schedule(root_channel, time, root_user): #time = "yyyymmddHHMM", r
         
         # 팟 올리기!
         embed = make_pot_embed(new)
-        """
-        embed = discord.Embed(title="*팟 모집중!*", color=0xf88379)
-        embed.add_field(name="팟을 연 사람", value=new.name(), inline=False)
-        embed.add_field(name="어떤 게임?", value=new.what, inline=False)
-        embed.add_field(name="몇시에 할까요?", value=new.when.strftime("%Y년 %m월 %d일 %H시 %M분"), inline=False)
-        embed.add_field(name="누가 참여하나요?", value="아직 없어요!", inline=False)
-        embed.set_footer(text='참여는 밑의 👍를 눌러주세요!')
-        """
         msg = await message.channel.send(embed=embed)
         await msg.add_reaction("👍") #step
         
@@ -189,12 +230,14 @@ async def on_reaction_add(reaction, user):
         time_str = get_time(120)
         await new_schedule(root_channel, time_str, user)
     if str(reaction.emoji) == "😀": #1분후
-        msg = await reaction.message.channel.send("1분 후 팟을 설정합니다.")
+        msg = await reaction.message.channel.send("시간을 설정합니다.")
         await asyncio.sleep(0.6) # 기다리고
         await msg.delete() # 보낸 메시지 삭제
         await reaction.message.delete()
-        time_str = get_time(1)
+        time_str = await set_custom_time(root_channel, user)
         await new_schedule(root_channel, time_str, user)
+        # time_str = get_time(1)
+        # await new_schedule(root_channel, time_str, user)
     if str(reaction.emoji) == "👍": #팟 인원 추가!
         for schedule in schedules:
             if(reaction.message.id == schedule[0].id):
