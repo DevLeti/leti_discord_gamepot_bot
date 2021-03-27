@@ -310,9 +310,10 @@ async def set_custom_time_two_level(root_channel, root_user):
                     # 2. 3자리
                     elif(len(hour_minute_str) == 3):
                         #125같이 모호한 자리수 판단하는 상호작용 추가
+                        return None
                     # 3. 4자리
-                    elif(len(hour_minutes_str) == 4):
-                        hour = int(hour_minutes_str[0:2])
+                    elif(len(hour_minute_str) == 4):
+                        hour = int(hour_minute_str[0:2])
                         minute = int(hour_minute_str[2:4])
                         if(hour < 0 or hour > 23):
                             hour_error = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
