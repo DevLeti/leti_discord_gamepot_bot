@@ -157,7 +157,7 @@ async def set_custom_time_two_level(root_channel, root_user):
         await time_out_message.delete()
     else: #월일 입력 성공
         month_day_str = message.content
-        await message.delete()
+        # await message.delete() #이건 뭐지?
         await month_day_question.delete()
         try:
             """
@@ -188,6 +188,105 @@ async def set_custom_time_two_level(root_channel, root_user):
                     await set_custom_time_two_level(root_channel, root_user)
             # 입력이 세글자
             elif(len(month_day_str) == 3): #만약 425면 4월 25일로 인식해야하니까
+                """
+                123 -> 1월 23일? 12월 3일?
+                1. 1월인 경우 : 두번째 자리수까지 봐야함. 123이면 12월일수도, 1월일수도 있으니까.
+                    1-1. 1월이며 두번째 자리수가 0인 경우 : 10월 확정이므로 상호작용하지 않음. day가 0이 아닌지만 확인하면됨
+                    1-2. 1월이며 두번째 자리수가 1,2인 경우: embed로 1,2 선택지 줘서 상호작용.
+                    1-3. 1월이며 두번째 자리수가 3인 경우 : 2자리수는 일인게 확정이므로 상호작용하지 않음.
+                2. 2~9의 경우 : 두번째 자리수를 볼 필요가 없음. 13월부터는 없으니까.
+                    * 2월인 경우 두번째 자리수가 3일 경우 입력오류 넘기면 된다. 윤년 평년 계산!
+                """
+                first = int(month_day_str[0])
+                second = int(month_day_str[1])
+                third = int(month_day_str[2])
+                
+                if(first < 1): #1~9 아니면 컷
+                    month_error = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
+                    await asyncio.sleep(2)
+                    await month_error.delete()
+                    await set_custom_time_two_level(root_channel, root_user)
+                elif(first == 1): #1. 1월인 경우
+                    if(second == 0):
+                        month = int(month_day_str[0:2])
+                        day = int(month_day_str[2])
+                        #10월 x일까지 확실하므로 day가 0이 아니면 error 출력하면됨
+                        if(day == 0):
+                            day_error = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
+                            await asyncio.sleep(2)
+                            await day_error.delete()
+                            await set_custom_time_two_level(root_channel, root_user)
+                    elif(second == 1 or second == 2): # 두번째 숫자가 0,1,2 인 경우 : embed로 상호작용
+                        try:
+                            embed = discord.Embed(title="날짜가 모호해요!*", color=0xf88379)
+                            embed.add_field(name="1번", value="{0}월 {1}{2}일".format(first, second, third), inline=False)
+                            embed.add_field(name="2번", value="{0}{1}월, {2}일".format(first, second, third), inline=False)
+                            embed.set_footer(text='1번은 1️⃣, 2번은 2️⃣를 눌러주세요!')
+                            msg = await root_channel.send(embed=embed)
+                            await msg.add_reaction("1️⃣")
+                            await msg.add_reaction("2️⃣")
+                            
+                            reaction, user = await client.wait_for('reaction_add', timeout = 60.0, check = check) # 20
+                        except asyncio.TimeoutError:
+                                time_out_message = await root_channel.send("시간 초과로 취소되었습니다.")
+                                await asyncio.sleep(25) # 300
+                                await time_out_message.delete()
+                                await msg.delete()
+                        else:
+                            if(str(reaction.emoji) == "1️⃣"):
+                                month = first
+                                day = str(month_day_str[1:3])
+                                # 구현
+                            elif(str(reaction.emoji) == "2️⃣"):
+                                month = str(month_day_str[0:2])
+                                day = third
+                                #구현
+                    elif(second == 3): # 두번째 숫자가 3인 경우 : 日의 십의자리수 이므로 상호작용X
+                        month = first
+                        day = int(month_day_str[1:3])
+                        if(day < 1 or day > 31): #1~31 범위 밖의 숫자인 경우 에러
+                            day_error = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
+                            await asyncio.sleep(2)
+                            await day_error.delete()
+                            await set_custom_time_two_level(root_channel, root_user)
+                    else: # 14월도 없고 40일도 없다. 에러!
+                        day_error = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
+                        await asyncio.sleep(2)
+                        await day_error.delete()
+                        await set_custom_time_two_level(root_channel, root_user)
+                else: #2~9면 두번재 자리수를 볼 필요가 없음.
+                    month = first
+                    day = int(month_day_str[1:3])
+                    # 1. 31일인 월인 경우
+                    if(month in day31_month):
+                        if(day < 1 or day > 31):
+                            day_error = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
+                            await asyncio.sleep(2)
+                            await day_error.delete()
+                            await set_custom_time_two_level(root_channel, root_user)
+                    # 2. 30일인 월인 경우
+                    elif(month in day30_month):
+                        if(day < 1 or day > 30):
+                                day_error = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
+                                await asyncio.sleep(2)
+                                await day_error.delete()
+                                await set_custom_time_two_level(root_channel, root_user)
+                    # 3. 2월인 경우
+                    elif(month == 2):
+                        year = datetime.datetime.today().year # 서버시간에서 연도 추출
+                        if((year%4 == 0 and year%100!=0) or year%400==0): #윤년 계산
+                            if(day < 1 or day > 29):
+                                day_error = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
+                                await asyncio.sleep(2)
+                                await day_error.delete()
+                                await set_custom_time_two_level(root_channel, root_user)
+                        else: #평년
+                            if(day < 1 or day > 28):
+                                day_error = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
+                                await asyncio.sleep(2)
+                                await day_error.delete()
+                                await set_custom_time_two_level(root_channel, root_user)
+                """
                 month = int(month_day_str[0])
                 day = int(month_day_str[1:3])
                 if(month < 1): # 12이상일 수가 없으므로 0이하만 확인
@@ -226,6 +325,7 @@ async def set_custom_time_two_level(root_channel, root_user):
                                 await asyncio.sleep(2)
                                 await day_error.delete()
                                 await set_custom_time_two_level(root_channel, root_user)
+                """
             #입력이 4글자
             elif(len(month_day_str) == 4):
                 month = int(month_day_str[0:2])
@@ -278,14 +378,15 @@ async def set_custom_time_two_level(root_channel, root_user):
                             
         else: #월일 케이스 통과, 가지고 있는 변수 : year, month, day
             try:
-                question2 = discord.Embed(title="시간을 알려주세요!\n")
-                question2.set_footer(text="0시~23시, 0분~59분\n예)1340 : 13시40분, 930 : 09시30분, 13 : 1시3분, 00: 0시0분")
-                hour_minute_question = await client.wait_for('message', timeout = 60.0, check = check) # 20
+                question = discord.Embed(title="시간을 알려주세요!\n")
+                question.set_footer(text="0시~23시, 0분~59분\n예)1340 : 13시40분, 930 : 09시30분, 13 : 1시3분, 00: 0시0분")
+                month_day_question = await root_channel.send(embed = question)
+                message = await client.wait_for('message', timeout = 60.0, check = check) # 20
             except asyncio.TimeoutError:
                     time_out_message = await root_channel.send("시간 초과로 취소되었습니다.")
                     await asyncio.sleep(25) # 300
                     await time_out_message.delete()
-                    await hour_minute_question.delete()
+                    await message.delete()
             else:
                 hour_minute_str = message.content
                 await message.delete() # 질문회수
@@ -310,6 +411,10 @@ async def set_custom_time_two_level(root_channel, root_user):
                     # 2. 3자리
                     elif(len(hour_minute_str) == 3):
                         #125같이 모호한 자리수 판단하는 상호작용 추가
+                        
+                        first = int(hour_minute_str[0])
+                        second = int(hour_minute_str[1])
+                        third = int(hour_minute_str[2])
                         return None
                     # 3. 4자리
                     elif(len(hour_minute_str) == 4):
