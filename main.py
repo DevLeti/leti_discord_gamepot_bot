@@ -14,6 +14,11 @@
 # https://emojipedia.org/symbols/ 이모지 리스트\
 
 ############################################################################
+#사용중인 reaction
+# 🇦 Regional Indicator Symbol Letter A
+# 🇧 Regional Indicator Symbol Letter B
+# 추가예정
+############################################################################
 # 시간 모듈
 import datetime
 from datetime import timedelta
@@ -226,15 +231,15 @@ async def set_custom_time_two_level(root_channel, root_user):
                         try:
                             print("second가 0/1/2이므로 날짜 모호 - 상호작용 발생")
                             embed = discord.Embed(title="날짜가 모호해요!*", color=0xf88379)
-                            embed.add_field(name="1번", value="{0}월 {1}일".format(first, str(second)+str(third)), inline=False)
-                            embed.add_field(name="2번", value="{0}월 {1}일".format( str(first)+str(second), third), inline=False)
-                            embed.set_footer(text='1번은 1️⃣, 2번은 2️⃣를 눌러주세요!')
+                            embed.add_field(name="A", value="{0}월 {1}일".format(first, str(second)+str(third)), inline=False)
+                            embed.add_field(name="B", value="{0}월 {1}일".format( str(first)+str(second), third), inline=False)
+                            embed.set_footer(text='A는 🇦, 2번은 🇧를 눌러주세요!')
                             msg = await root_channel.send(embed=embed)
-                            await msg.add_reaction("1️⃣")
-                            await msg.add_reaction("2️⃣")
+                            await msg.add_reaction("🇦")
+                            await msg.add_reaction("🇧")
                             
                             def check_react(reaction, user):
-                                return user == message.author
+                                return root_user == user
                             reaction, user = await client.wait_for('reaction_add', timeout = 60.0, check = check_react) # 20
                         except Exception as e: #asyncio.TimeoutError
                             print(e)
@@ -246,22 +251,18 @@ async def set_custom_time_two_level(root_channel, root_user):
                         else:
                             print("상호작용 완료")
                             try:
-                                if(str(reaction.emoji) == "1️⃣"):
+                                if(str(reaction.emoji) == "🇦"):
+                                    await msg.delete()
                                     print("유저 리액션 : {}".format(str(reaction.emoji)))
                                     month = first
                                     day = int(month_day_str[1:3])
                                     print("월일 3글자 - 파싱성공, month : {} day : {}".format(month, day))
-                                    #######
-                                    # 구현 #
-                                    #######
-                                elif(str(reaction.emoji) == "2️⃣"):
+                                elif(str(reaction.emoji) == "🇧"):
+                                    await msg.delete()
                                     print("유저 리액션 : {}".format(str(reaction.emoji)))
                                     month = int(month_day_str[0:2])
                                     day = third
                                     print("월일 3글자 - 파싱성공, month : {} day : {}".format(month, day))
-                                    #######
-                                    # 구현 #
-                                    #######
                                 else:
                                     print("유저 리액션 : {}".format(str(reaction.emoji)))
                                     print("잘못된 리액션!")
@@ -436,21 +437,21 @@ async def set_custom_time_two_level(root_channel, root_user):
             await error_message.delete()
             return await set_custom_time_two_level(root_channel, root_user)
                             
-    print("월일 케이스 통과, 가지고 있는 변수 : year, month, day")
-    question = discord.Embed(title="시간을 알려주세요!\n")
-    question.set_footer(text="0시~23시, 0분~59분\n예)1340 : 13시40분, 930 : 09시30분, 13 : 1시3분, 00: 0시0분")
-    hour_minute_question = await root_channel.send(embed = question)
-    def check_user(message):
-        return message.author == root_user
-    message = await client.wait_for('message', timeout = 60.0, check = check_user) # 20
-    print("메시지 받음 ", message.content)
-    '''
+        print("월일 케이스 통과, 가지고 있는 변수 : year, month, day")
+        """
+        question = discord.Embed(title="시간을 알려주세요!\n")
+        question.set_footer(text="0시~23시, 0분~59분\n예)1340 : 13시40분, 930 : 09시30분, 13 : 1시3분, 00: 0시0분")
+        hour_minute_question = await root_channel.send(embed = question)
+        def check_user(message):
+            return message.author == root_user
+        message = await client.wait_for('message', timeout = 60.0, check = check_user) # 20
+        print("메시지 받음 ", message.content)
+        """
+    
     try:
         question = discord.Embed(title="시간을 알려주세요!\n")
         question.set_footer(text="0시~23시, 0분~59분\n예)1340 : 13시40분, 930 : 09시30분, 13 : 1시3분, 00: 0시0분")
         hour_minute_question = await root_channel.send(embed = question)
-        def check(message):
-            message.author == root_user
         message = await client.wait_for('message', timeout = 60.0, check = check) # 20
     except Exception as e: #asyncio.TimeoutError
         print(e)
@@ -460,7 +461,7 @@ async def set_custom_time_two_level(root_channel, root_user):
         await hour_minute_question.delete()
     else:
         hour_minute_str = message.content.replace(" ", "")
-        # await message.delete() # 질문회수
+        await message.delete() # 답변회수
         await hour_minute_question.delete() # 질문회수
         """
         월일 가능한 케이스
@@ -509,7 +510,7 @@ async def set_custom_time_two_level(root_channel, root_user):
         else: #월일시간분 다 받음! month, day, hour, minute
             time_instance = datetime.datetime(year = year, month = month, day = day, hour=hour, minute=minute)
             return time_instance
-    '''
+    
 # 팟 embed 생성 함수
 def make_pot_embed(schedule):
     embed = discord.Embed(title="*팟 모집중!*", color=0xf88379)
@@ -600,7 +601,7 @@ async def on_reaction_add(reaction, user):
         await reaction.message.delete()
         time_str = get_time(120)
         await new_schedule(root_channel, time_str, user)
-    if str(reaction.emoji) == "😀": #1분후
+    if str(reaction.emoji) == "😀": #시간설정
         msg = await reaction.message.channel.send("시간을 설정합니다.")
         await asyncio.sleep(0.6) # 기다리고
         await msg.delete() # 보낸 메시지 삭제
