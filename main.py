@@ -480,6 +480,8 @@ async def set_custom_time_two_level(root_channel, root_user):
             if(len(hour_minute_str) == 2):
                 hour = int(hour_minute_str[0])
                 minute = int(hour_minute_str[1])
+                # 0시~9시
+                # 0분~9분
             # 2. 3자리
             elif(len(hour_minute_str) == 3):
                 #125같이 모호한 자리수 판단하는 상호작용 추가
@@ -487,6 +489,17 @@ async def set_custom_time_two_level(root_channel, root_user):
                 first = int(hour_minute_str[0])
                 second = int(hour_minute_str[1])
                 third = int(hour_minute_str[2])
+                #first : {1, 2}, {0, 3, 4, 5, 6, 7, 8, 9}
+                #second : {0, 1, 2, 3, 4}, {5, 6}, {7, 8, 9}
+                #third : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+                """
+                first는 무조건 시간이어서 1,2만 가능. 그외는 전부 에러호출
+                second에서 interaction 유무가 갈림
+                1. 일단 7,8,9는 시간이든 분의 십의자리수든 불가능이어서 에러호출
+                2. 5,6이면 분의 십의자리수 확정 -> interaction 필요없음
+                3. 0~4면 interaction으로 물어보기
+                third는 0~9 모두 분단위의 수 확정.
+                """
                 return None
             # 3. 4자리
             elif(len(hour_minute_str) == 4):
