@@ -233,7 +233,7 @@ async def set_custom_time_two_level(root_channel, root_user):
                             embed = discord.Embed(title="날짜가 모호해요!*", color=0xf88379)
                             embed.add_field(name="A", value="{0}월 {1}일".format(first, str(second)+str(third)), inline=False)
                             embed.add_field(name="B", value="{0}월 {1}일".format( str(first)+str(second), third), inline=False)
-                            embed.set_footer(text='A는 🇦, 2번은 🇧를 눌러주세요!')
+                            # embed.set_footer(text='A는 🇦, 2번은 🇧를 눌러주세요!')
                             msg = await root_channel.send(embed=embed)
                             await msg.add_reaction("🇦")
                             await msg.add_reaction("🇧")
@@ -272,15 +272,13 @@ async def set_custom_time_two_level(root_channel, root_user):
                                     await reaction_error_message.delete()
                                     return await set_custom_time_two_level(root_channel, root_user)
                             except Exception as e:
-                                print(e)
-                                exit(0)
-                            else:
-                                print("문제없음")
+                                print("월/일 상호작용 에러발생!\n에러내용 : {}".format(e))
+                                return None
                     elif(second == 3): # 두번째 숫자가 3인 경우 : 日의 십의자리수 이므로 상호작용X
                         print("first 1 진입 - second가 3")
                         month = first
                         day = int(month_day_str[1:3])
-                        if(day != 30 or day != 31): #30, 31둘중 하나 아니면 잘못된 형식
+                        if(day < 30 or day > 31): #30, 31둘중 하나 아니면 잘못된 형식
                             day_error = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
                             await asyncio.sleep(2)
                             await day_error.delete()
@@ -489,17 +487,86 @@ async def set_custom_time_two_level(root_channel, root_user):
                 first = int(hour_minute_str[0])
                 second = int(hour_minute_str[1])
                 third = int(hour_minute_str[2])
-                #first : {1, 2}, {0, 3, 4, 5, 6, 7, 8, 9}
+                #first : {0, 1, 2}, {3, 4, 5, 6, 7, 8, 9}
                 #second : {0, 1, 2, 3, 4}, {5, 6}, {7, 8, 9}
                 #third : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
                 """
-                first는 무조건 시간이어서 1,2만 가능. 그외는 전부 에러호출
+                first는 무조건 시간이어서 0,1,2만 가능. 그외는 전부 에러호출
+                    1. first가 0이면 0시 결정, second랑 third가 분
                 second에서 interaction 유무가 갈림
                 1. 일단 7,8,9는 시간이든 분의 십의자리수든 불가능이어서 에러호출
                 2. 5,6이면 분의 십의자리수 확정 -> interaction 필요없음
                 3. 0~4면 interaction으로 물어보기
                 third는 0~9 모두 분단위의 수 확정.
                 """
+                if(first == 0): # first가 0이면 0시 확정
+                    hour = first
+                    minute = int(hour_minute_str[1:3])
+                elif(first == 1 or first == 2): # first가 1 or 2인 경우 second를 봐야함
+                    error_second_arr = [7,8,9]
+                    interaction_not_required_second_arr = [5,6]
+                    interaction_required_second_arr = [0,1,2,3,4]
+                    
+                    if(second in error_second_arr): # 7,8,9는 분의 십의자리수든 시의 일의자리수 모두 불가능해서 에러호출
+                        hour_error = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
+                        await asyncio.sleep(2)
+                        await hour_error.delete()
+                        await set_custom_time_two_level(root_channel, root_user)
+                    elif(second in interaction_not_required_second_arr): # second가 5,6 이면 분의 십의자리수 확정
+                        hour = first
+                        minute = int(hour_minute_str[1:3])
+                    elif(second in interaction_required_second_arr):
+                        try:
+                            # print("second가 5,6이므로 날짜 모호 - 상호작용 발생")
+                            embed = discord.Embed(title="날짜가 모호해요!*", color=0xf88379)
+                            embed.add_field(name="A", value="{0}시 {1}분".format(first, str(second)+str(third)), inline=False)
+                            embed.add_field(name="B", value="{0}시 {1}분".format( str(first)+str(second), third), inline=False)
+                            # embed.set_footer(text='A는 🅰️, 2번은 🅱️를 눌러주세요!') # 🅰️, 🅱️ :  A Button (Blood Type),  B Button (Blood Type)
+                            msg = await root_channel.send(embed=embed)
+                            await msg.add_reaction("🅰️")
+                            await msg.add_reaction("🅱️")
+                            
+                            def check_react(reaction, user):
+                                return root_user == user
+                            reaction, user = await client.wait_for('reaction_add', timeout = 60.0, check = check_react) # 20
+                        except Exception as e: #asyncio.TimeoutError
+                            print(e)
+                            print("상호작용 시간 초과")
+                            time_out_message = await root_channel.send("시간 초과로 취소되었습니다.")
+                            await asyncio.sleep(25) # 300
+                            await time_out_message.delete()
+                            await msg.delete()
+                        else:
+                            print("상호작용 완료")
+                            try:
+                                if(str(reaction.emoji) == "🅰️"):
+                                    await msg.delete()
+                                    print("유저 리액션 : {}".format(str(reaction.emoji)))
+                                    hour = first
+                                    minute = int(hour_minute_str[1:3])
+                                    print("시간/분 3글자 - 파싱성공, month: {} , day: {}, hour : {} minute : {}".format(month, day, hour, minute))
+                                elif(str(reaction.emoji) == "🅱️"):
+                                    await msg.delete()
+                                    print("유저 리액션 : {}".format(str(reaction.emoji)))
+                                    hour = int(hour_minute_str[0:2])
+                                    minute = third
+                                    print("시간/분 3글자 - 파싱성공, month: {} , day: {}, hour : {} minute : {}".format(month, day, hour, minute))
+                                else:
+                                    print("유저 리액션 : {}".format(str(reaction.emoji)))
+                                    print("잘못된 리액션!")
+                                    reaction_error_message = await root_channel.send("잘못된 반응을 주셨습니다.\n다시 입력받겠습니다.")
+                                    await asyncio.sleep(2)
+                                    await msg.delete()
+                                    await reaction_error_message.delete()
+                                    return await set_custom_time_two_level(root_channel, root_user)
+                            except Exception as e:
+                                print("월/일 상호작용 에러발생!\n에러내용 : {}".format(e))
+                                return None
+                else:
+                    hour_error = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
+                    await asyncio.sleep(2)
+                    await hour_error.delete()
+                    await set_custom_time_two_level(root_channel, root_user)
                 return None
             # 3. 4자리
             elif(len(hour_minute_str) == 4):
@@ -515,14 +582,19 @@ async def set_custom_time_two_level(root_channel, root_user):
                     await asyncio.sleep(2)
                     await minute_error.delete()
                     await set_custom_time_two_level(root_channel, root_user)
-        except:
+                    
+        except Exception as e :
+            print("시/분 파싱부분 에러발생!\n 에러명 : {}".format(e))
             error_message = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
             await asyncio.sleep(2)
             await error_message.delete()
             await set_custom_time_two_level(root_channel, root_user)
-        else: #월일시간분 다 받음! month, day, hour, minute
-            time_instance = datetime.datetime(year = year, month = month, day = day, hour=hour, minute=minute)
-            return time_instance
+            
+            
+        # else: #월일시간분 다 받음! month, day, hour, minute
+        time_instance = datetime.datetime(year = year, month = month, day = day, hour=hour, minute=minute)
+        print(time_instance)
+        return time_instance
     
 # 팟 embed 생성 함수
 def make_pot_embed(schedule):
@@ -699,7 +771,7 @@ async def my_background_task():
     # 함수 검증 필요 #
     ################
     await client.wait_until_ready()
-    print("background task 함수 접근")
+    #print("background task 함수 접근")
     #schedule들이 들어있는 array를 순회하며 60/30/10/5분 후 마감이 되는 팟을 찾는 함수
     
     if len(schedules) == 0: #schedule이 하나도 없으면
