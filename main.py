@@ -69,6 +69,14 @@ async def on_ready():
     print(client.user.id)
     print("================")
     my_background_task.start()
+    
+    print("~하는중 설정 : %팟추가")
+    await client.change_presence(status=discord.Status.online, activity=discord.Game("%팟추가"))
+    
+    # 중요 : 봇은 custom activity를 할 수 없다.
+    # https://stackoverflow.com/questions/60055037/how-make-custom-status-discord-py
+    # custom_activity = discord.Activity(type=discord.ActivityType.competing, state="%팟추가")
+    # await client.change_presence(status=discord.Status.online, activity=custom_activity)
 
 ############################################################################
 # 봇이 특정 메세지를 받고 인식하는 코드
@@ -591,9 +599,8 @@ async def set_custom_time_two_level(root_channel, root_user):
             
             
     #월일시간분 다 받음! month, day, hour, minute
-    print("time_instance 만들기")
     time_instance = datetime.datetime(year = year, month = month, day = day, hour=hour, minute=minute)
-    print(time_instance)
+    print("시간 interaction 완료, time_instance : {}".format(time_instance))
     return time_instance
     
 # 팟 embed 생성 함수
