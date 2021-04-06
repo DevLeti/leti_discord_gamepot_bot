@@ -538,36 +538,35 @@ async def set_custom_time_two_level(root_channel, root_user):
                             await msg.delete()
                         else:
                             print("상호작용 완료")
-                            try:
-                                if(str(reaction.emoji) == "🅰️"):
-                                    await msg.delete()
-                                    print("유저 리액션 : {}".format(str(reaction.emoji)))
-                                    hour = first
-                                    minute = int(hour_minute_str[1:3])
-                                    print("시간/분 3글자 - 파싱성공, month: {} , day: {}, hour : {} minute : {}".format(month, day, hour, minute))
-                                elif(str(reaction.emoji) == "🅱️"):
-                                    await msg.delete()
-                                    print("유저 리액션 : {}".format(str(reaction.emoji)))
-                                    hour = int(hour_minute_str[0:2])
-                                    minute = third
-                                    print("시간/분 3글자 - 파싱성공, month: {} , day: {}, hour : {} minute : {}".format(month, day, hour, minute))
-                                else:
-                                    print("유저 리액션 : {}".format(str(reaction.emoji)))
-                                    print("잘못된 리액션!")
-                                    reaction_error_message = await root_channel.send("잘못된 반응을 주셨습니다.\n다시 입력받겠습니다.")
-                                    await asyncio.sleep(2)
-                                    await msg.delete()
-                                    await reaction_error_message.delete()
-                                    return await set_custom_time_two_level(root_channel, root_user)
-                            except Exception as e:
-                                print("월/일 상호작용 에러발생!\n에러내용 : {}".format(e))
-                                return None
+                            # try:
+                            if(str(reaction.emoji) == "🅰️"):
+                                await msg.delete()
+                                print("유저 리액션 : {}".format(str(reaction.emoji)))
+                                hour = first
+                                minute = int(hour_minute_str[1:3])
+                                print("시간/분 3글자 - 파싱성공, month: {} , day: {}, hour : {} minute : {}".format(month, day, hour, minute))
+                            elif(str(reaction.emoji) == "🅱️"):
+                                await msg.delete()
+                                print("유저 리액션 : {}".format(str(reaction.emoji)))
+                                hour = int(hour_minute_str[0:2])
+                                minute = third
+                                print("시간/분 3글자 - 파싱성공, month: {} , day: {}, hour : {} minute : {}".format(month, day, hour, minute))
+                            # else:
+                            #     print("유저 리액션 : {}".format(str(reaction.emoji)))
+                            #     print("잘못된 리액션!")
+                            #     reaction_error_message = await root_channel.send("잘못된 반응을 주셨습니다.\n다시 입력받겠습니다.")
+                            #     await asyncio.sleep(2)
+                            #     await msg.delete()
+                            #     await reaction_error_message.delete()
+                            #     return await set_custom_time_two_level(root_channel, root_user)
+                            # except Exception as e:
+                            #     print("월/일 상호작용 에러발생!\n에러내용 : {}".format(e))
+                            #     return None
                 else:
                     hour_error = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
                     await asyncio.sleep(2)
                     await hour_error.delete()
-                    await set_custom_time_two_level(root_channel, root_user)
-                return None
+                    return await set_custom_time_two_level(root_channel, root_user)
             # 3. 4자리
             elif(len(hour_minute_str) == 4):
                 hour = int(hour_minute_str[0:2])
@@ -591,10 +590,11 @@ async def set_custom_time_two_level(root_channel, root_user):
             await set_custom_time_two_level(root_channel, root_user)
             
             
-        # else: #월일시간분 다 받음! month, day, hour, minute
-        time_instance = datetime.datetime(year = year, month = month, day = day, hour=hour, minute=minute)
-        print(time_instance)
-        return time_instance
+    #월일시간분 다 받음! month, day, hour, minute
+    print("time_instance 만들기")
+    time_instance = datetime.datetime(year = year, month = month, day = day, hour=hour, minute=minute)
+    print(time_instance)
+    return time_instance
     
 # 팟 embed 생성 함수
 def make_pot_embed(schedule):
