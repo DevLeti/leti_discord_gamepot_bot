@@ -73,7 +73,7 @@ async def on_ready():
     print("~하는중 설정 : %팟추가")
     await client.change_presence(status=discord.Status.online, activity=discord.Game("%팟추가"))
     
-    # 중요 : 봇은 custom activity를 할 수 없다.
+    # 중요 : 봇은 custom activity를 할 수 없다. playing 또는 watching 쓰자.
     # https://stackoverflow.com/questions/60055037/how-make-custom-status-discord-py
     # custom_activity = discord.Activity(type=discord.ActivityType.competing, state="%팟추가")
     # await client.change_presence(status=discord.Status.online, activity=custom_activity)
@@ -158,7 +158,7 @@ async def set_custom_time_two_level(root_channel, root_user):
     try:
         print("입력 받기 depth 1 - 월일 입력")
         question1 = discord.Embed(title="월일을 알려주세요!\n")
-        question1.set_footer(text="예)1025: 10월25일, 131:1월31일, 11:1월1일")
+        question1.set_footer(text="예)0: 오늘, 1025: 10월25일, 131:1월31일, 11:1월1일")
         month_day_question = await root_channel.send(embed = question1)
         
         def check(message):
@@ -190,10 +190,14 @@ async def set_custom_time_two_level(root_channel, root_user):
             # 28 또는 29인 월 : 2
             day31_month = [1,3,5,7,8,10,12]
             day30_month = [4,6,9,11]
-            year = datetime.datetime.today().year # 서버시간에서 연도 추출
+            now = datetime.datetime.today()
+            year = now.year # 서버시간에서 연도 추출
             # 입력이 두글자 11, 22, 35, 59등
             print("유저 메시지 파싱 성공 - 월, 일 파싱 시작")
-            if(len(month_day_str) == 2):
+            if(month_day_str == '0'):
+                month = now.month
+                day = now.day
+            elif(len(month_day_str) == 2):
                 print("월일 2글자")
                 month = int(month_day_str[0])
                 day = int(month_day_str[1])
