@@ -97,14 +97,15 @@ async def on_message(message):
         embed.add_field(name="2", value="2시간 후 실행", inline=False)
         embed.add_field(name="😀", value="직접설정", inline=False)
         msg = await message.channel.send(embed=embed)
-        await msg.add_reaction("1️⃣") #step
-        await msg.add_reaction("2️⃣") #stun
-        await msg.add_reaction("😀") #stun
+        await msg.add_reaction("1️⃣")
+        await msg.add_reaction("2️⃣")
+        await msg.add_reaction("😀")
         
 ############################################################################
 
 ############################################################################
 # 상세시간 설정 함수
+"""
 async def set_custom_time(root_channel, root_user):
      # 게임이름 받기
     try:
@@ -151,8 +152,18 @@ async def set_custom_time(root_channel, root_user):
             await asyncio.sleep(2)
             await msg.delete()
             await set_custom_time(root_channel, root_user)
-
+"""
 ##########################################################################################
+async def print_input_error(root_channel):
+    error_msg = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
+    await asyncio.sleep(2)
+    await error_msg.delete()
+    
+async def print_time_out_error(root_channel):
+    error_msg = await root_channel.send("시간 초과로 취소되었습니다.")
+    await asyncio.sleep(2)
+    await error_msg.delete()
+
 async def set_custom_time_two_level(root_channel, root_user):
      # 팟 날짜 받기
     try:
@@ -171,8 +182,8 @@ async def set_custom_time_two_level(root_channel, root_user):
         await time_out_message.delete()
     else: #월일 입력 성공
         print("월일 입력 받음 - 파싱 시작")
-        month_day_str = message.content.replace(" ", "") #공백 혹시모르니 제거
-        await message.delete() #이건 뭐지?
+        month_day_str = message.content.replace(" ", "")
+        await message.delete()
         await month_day_question.delete()
         try:
             """
@@ -201,12 +212,9 @@ async def set_custom_time_two_level(root_channel, root_user):
                 print("월일 2글자")
                 month = int(month_day_str[0])
                 day = int(month_day_str[1])
-                if(month == 0 or day == 0): # 0월이나 0일은 없다.
-                    #탕수육 먹고싶당
+                if(month == 0 or day == 0):
                     print("형식 잘못됨 - 00에러")
-                    error_msg = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
-                    await asyncio.sleep(2)
-                    await error_msg.delete()
+                    print_input_error(root_channel)
                     return await set_custom_time_two_level(root_channel, root_user)
                 print("월일 2글자 - 파싱성공, month : {} day : {}".format(month, day))
             # 입력이 세글자
@@ -226,17 +234,13 @@ async def set_custom_time_two_level(root_channel, root_user):
                 
                 if(first < 1): #1~9 아니면 컷
                     print("월일 3글자 에러 - first가 0이하")
-                    month_error = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
-                    await asyncio.sleep(2)
-                    await month_error.delete()
+                    print_input_error(root_channel)
                     return await set_custom_time_two_level(root_channel, root_user)
                 elif(first == 1): #1. 1월인 경우
                     print("first 1 진입")
                     if(second == 0 and third == 0): # 0일은 없으니까 에러 던지기
                         print("월일 3글자 에러 - second와 third가 모두 third")
-                        day_error = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
-                        await asyncio.sleep(2)
-                        await day_error.delete()
+                        print_input_error(root_channel)
                         return await set_custom_time_two_level(root_channel, root_user)
                     
                     if(second == 0 or second == 1 or second == 2): # 두번째 숫자가 0,1,2 인 경우 : embed로 상호작용
@@ -256,9 +260,7 @@ async def set_custom_time_two_level(root_channel, root_user):
                         except Exception as e: #asyncio.TimeoutError
                             print(e)
                             print("상호작용 시간 초과")
-                            time_out_message = await root_channel.send("시간 초과로 취소되었습니다.")
-                            await asyncio.sleep(25) # 300
-                            await time_out_message.delete()
+                            print_time_out_error(root_channel)
                             await msg.delete()
                         else:
                             print("상호작용 완료")
@@ -275,14 +277,6 @@ async def set_custom_time_two_level(root_channel, root_user):
                                     month = int(month_day_str[0:2])
                                     day = third
                                     print("월일 3글자 - 파싱성공, month : {} day : {}".format(month, day))
-                                else:
-                                    print("유저 리액션 : {}".format(str(reaction.emoji)))
-                                    print("잘못된 리액션!")
-                                    reaction_error_message = await root_channel.send("잘못된 반응을 주셨습니다.\n다시 입력받겠습니다.")
-                                    await asyncio.sleep(2)
-                                    await msg.delete()
-                                    await reaction_error_message.delete()
-                                    return await set_custom_time_two_level(root_channel, root_user)
                             except Exception as e:
                                 print("월/일 상호작용 에러발생!\n에러내용 : {}".format(e))
                                 return None
@@ -291,16 +285,12 @@ async def set_custom_time_two_level(root_channel, root_user):
                         month = first
                         day = int(month_day_str[1:3])
                         if(day < 30 or day > 31): #30, 31둘중 하나 아니면 잘못된 형식
-                            day_error = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
-                            await asyncio.sleep(2)
-                            await day_error.delete()
+                            print_input_error(root_channel)
                             return await set_custom_time_two_level(root_channel, root_user)
                         print("월일 3글자 - 파싱성공, month : {} day : {}".format(month, day))
                     else: # second는 4~9가 있으면 형식 오류.
                         print("월일 3글자 - 파싱실패, second가 4~9")
-                        day_error = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
-                        await asyncio.sleep(2)
-                        await day_error.delete()
+                        print_input_error(root_channel)
                         return await set_custom_time_two_level(root_channel, root_user)
                 else: #2~9면 두번재 자리수를 볼 필요가 없음.
                     print("first가 2~9이므로 월일 자리수 확정")
@@ -311,18 +301,14 @@ async def set_custom_time_two_level(root_channel, root_user):
                         print("일이 31인 월")
                         if(day < 1 or day > 31):
                             print("파싱 실패 - 날짜 형식이 안맞음(1~31)아님")
-                            day_error = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
-                            await asyncio.sleep(2)
-                            await day_error.delete()
+                            print_input_error(root_channel)
                             return await set_custom_time_two_level(root_channel, root_user)
                     # 2. 30일인 월인 경우
                     elif(month in day30_month):
                         print("일이 30인 월")
                         if(day < 1 or day > 30):
                             print("파싱 실패 - 날짜 형식이 안맞음(1~30)아님")
-                            day_error = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
-                            await asyncio.sleep(2)
-                            await day_error.delete()
+                            print_input_error(root_channel)
                             return await set_custom_time_two_level(root_channel, root_user)
                     # 3. 2월인 경우
                     elif(month == 2):
@@ -332,58 +318,14 @@ async def set_custom_time_two_level(root_channel, root_user):
                             print("윤년인 2월")
                             if(day < 1 or day > 29):
                                 print("파싱 실패 - 날짜 형식이 안맞음(1~29)아님")
-                                day_error = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
-                                await asyncio.sleep(2)
-                                await day_error.delete()
+                                print_input_error(root_channel)
                                 return await set_custom_time_two_level(root_channel, root_user)
                         else: #평년
                             print("평년인 2월")
                             if(day < 1 or day > 28):
                                 print("파싱 실패 - 날짜 형식이 안맞음(1~28)아님")
-                                day_error = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
-                                await asyncio.sleep(2)
-                                await day_error.delete()
+                                print_input_error(root_channel)
                                 return await set_custom_time_two_level(root_channel, root_user)
-                """
-                month = int(month_day_str[0])
-                day = int(month_day_str[1:3])
-                if(month < 1): # 12이상일 수가 없으므로 0이하만 확인
-                    month_error = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
-                    await asyncio.sleep(2)
-                    await month_error.delete()
-                    await set_custom_time_two_level(root_channel, root_user)
-                else: #0이하 수 아닌것을 확인함
-                    
-                    # 1. 31일인 월인 경우
-                    if(month in day31_month):
-                        if(day < 1 or day > 31):
-                            day_error = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
-                            await asyncio.sleep(2)
-                            await day_error.delete()
-                            await set_custom_time_two_level(root_channel, root_user)
-                    # 2. 30일인 월인 경우
-                    elif(month in day30_month):
-                        if(day < 1 or day > 30):
-                                day_error = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
-                                await asyncio.sleep(2)
-                                await day_error.delete()
-                                await set_custom_time_two_level(root_channel, root_user)
-                    # 3. 2월인 경우
-                    elif(month == 2):
-                        year = datetime.datetime.today().year # 서버시간에서 연도 추출
-                        if((year%4 == 0 and year%100!=0) or year%400==0): #윤년 계산
-                            if(day < 1 or day > 29):
-                                day_error = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
-                                await asyncio.sleep(2)
-                                await day_error.delete()
-                                await set_custom_time_two_level(root_channel, root_user)
-                        else: #평년
-                            if(day < 1 or day > 28):
-                                day_error = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
-                                await asyncio.sleep(2)
-                                await day_error.delete()
-                                await set_custom_time_two_level(root_channel, root_user)
-                """
             #입력이 4글자
             elif(len(month_day_str) == 4):
                 print("월일이 4글자")
@@ -391,9 +333,7 @@ async def set_custom_time_two_level(root_channel, root_user):
                 day = int(month_day_str[2:])
                 if(month < 1 or month > 12): 
                     print("파싱 실패 - 월이 1~12가 아님")
-                    month_error = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
-                    await asyncio.sleep(2)
-                    await month_error.delete()
+                    print_input_error(root_channel)
                     return await set_custom_time_two_level(root_channel, root_user)
                 else: #0이하 12이상 월이 아닌것을 확인함
                     # 1. 31일인 월인 경우
@@ -401,18 +341,14 @@ async def set_custom_time_two_level(root_channel, root_user):
                         print("일이 31인 월")
                         if(day < 1 or day > 31):
                             print("파싱 실패 - 날짜 형식이 안맞음(1~31)아님")
-                            day_error = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
-                            await asyncio.sleep(2)
-                            await day_error.delete()
+                            print_input_error(root_channel)
                             return await set_custom_time_two_level(root_channel, root_user)
                     # 2. 30일인 월인 경우
                     elif(month in day30_month):
                         print("일이 30인 월")
                         if(day < 1 or day > 30):
                             print("파싱 실패 - 날짜 형식이 안맞음(1~30)아님")
-                            day_error = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
-                            await asyncio.sleep(2)
-                            await day_error.delete()
+                            print_input_error(root_channel)
                             return await set_custom_time_two_level(root_channel, root_user)
                     # 3. 2월인 경우
                     elif(month == 2):
@@ -421,43 +357,27 @@ async def set_custom_time_two_level(root_channel, root_user):
                             print("윤년인 2월")
                             if(day < 1 or day > 29):
                                 print("파싱 실패 - 날짜 형식이 안맞음(1~29)아님")
-                                day_error = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
-                                await asyncio.sleep(2)
-                                await day_error.delete()
+                                print_input_error(root_channel)
                                 return await set_custom_time_two_level(root_channel, root_user)
                         else: #평년
                             print("평년인 2월")
                             if(day < 1 or day > 28):
                                 print("파싱 실패 - 날짜 형식이 안맞음(1~28)아님")
-                                day_error = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
-                                await asyncio.sleep(2)
-                                await day_error.delete()
+                                print_input_error(root_channel)
                                 return await set_custom_time_two_level(root_channel, root_user)
                 print("월일 4글자 - 파싱성공, month : {} day : {}".format(month, day))
             else:
                 print("잘못된 입력 ex)-012")
-                error_message = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
-                await asyncio.sleep(2)
-                await error_message.delete()
+                print_input_error(root_channel)
                 return await set_custom_time_two_level(root_channel, root_user)
         except Exception as e: #에러
             print(e)
-            error_message = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
-            await asyncio.sleep(2)
-            await error_message.delete()
+            print_input_error(root_channel)
             return await set_custom_time_two_level(root_channel, root_user)
                             
         print("월일 케이스 통과, 가지고 있는 변수 : year, month, day")
-        """
-        question = discord.Embed(title="시간을 알려주세요!\n")
-        question.set_footer(text="0시~23시, 0분~59분\n예)1340 : 13시40분, 930 : 09시30분, 13 : 1시3분, 00: 0시0분")
-        hour_minute_question = await root_channel.send(embed = question)
-        def check_user(message):
-            return message.author == root_user
-        message = await client.wait_for('message', timeout = 60.0, check = check_user) # 20
-        print("메시지 받음 ", message.content)
-        """
-    
+
+    # 시간이랑 분 파싱시작
     try:
         question = discord.Embed(title="시간을 알려주세요!\n")
         question.set_footer(text="0시~23시, 0분~59분\n예)1340 : 13시40분, 930 : 09시30분, 13 : 1시3분, 00: 0시0분")
@@ -465,26 +385,12 @@ async def set_custom_time_two_level(root_channel, root_user):
         message = await client.wait_for('message', timeout = 60.0, check = check) # 20
     except Exception as e: #asyncio.TimeoutError
         print(e)
-        time_out_message = await root_channel.send("시간 초과로 취소되었습니다.")
-        await asyncio.sleep(25) # 300
-        await time_out_message.delete()
+        print_time_out_error(root_channel)
         await hour_minute_question.delete()
     else:
         hour_minute_str = message.content.replace(" ", "")
         await message.delete() # 답변회수
         await hour_minute_question.delete() # 질문회수
-        """
-        월일 가능한 케이스
-        1. 2자리 : 00 = 0시0분 10 = 1시 0분 11 = 1시 1분, 22 = 2시2분, 39 = 3시9분
-        2. 3자리 : 315 = 3시 15분, 225 = 2시25분
-            2-1. 125 : 1시 25분 또는 12시 5분으로 두가지 입력이 가능한 경우
-            물어봐서 맞는지 유무를 확인해보자.
-        3. 4자리 : 0425 : 4시 25분, 1225 = 12시 25분,
-        모두 판단하자
-        한자리랑 5자리이상은 else로 빼서 날짜형식 에러 출력하고 다시 함수 호출시키기
-        +) 버그 찾고싶어서 -125같이 입력하면 어떡하지?
-            -> -12같이 3자리면 int 변환하면서 에러나서 except로 던짐, -225면 month < 0에서 걸러짐 : OK
-        """
         try:
             # 1. 2자리
             if(len(hour_minute_str) == 2):
@@ -520,9 +426,7 @@ async def set_custom_time_two_level(root_channel, root_user):
                     interaction_required_second_arr = [0,1,2,3,4]
                     
                     if(second in error_second_arr): # 7,8,9는 분의 십의자리수든 시의 일의자리수 모두 불가능해서 에러호출
-                        hour_error = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
-                        await asyncio.sleep(2)
-                        await hour_error.delete()
+                        print_input_error(root_channel)
                         await set_custom_time_two_level(root_channel, root_user)
                     elif(second in interaction_not_required_second_arr): # second가 5,6 이면 분의 십의자리수 확정
                         hour = first
@@ -544,9 +448,7 @@ async def set_custom_time_two_level(root_channel, root_user):
                         except Exception as e: #asyncio.TimeoutError
                             print(e)
                             print("상호작용 시간 초과")
-                            time_out_message = await root_channel.send("시간 초과로 취소되었습니다.")
-                            await asyncio.sleep(25) # 300
-                            await time_out_message.delete()
+                            print_time_out_error(root_channel)
                             await msg.delete()
                         else:
                             print("상호작용 완료")
@@ -563,42 +465,23 @@ async def set_custom_time_two_level(root_channel, root_user):
                                 hour = int(hour_minute_str[0:2])
                                 minute = third
                                 print("시간/분 3글자 - 파싱성공, month: {} , day: {}, hour : {} minute : {}".format(month, day, hour, minute))
-                            # else:
-                            #     print("유저 리액션 : {}".format(str(reaction.emoji)))
-                            #     print("잘못된 리액션!")
-                            #     reaction_error_message = await root_channel.send("잘못된 반응을 주셨습니다.\n다시 입력받겠습니다.")
-                            #     await asyncio.sleep(2)
-                            #     await msg.delete()
-                            #     await reaction_error_message.delete()
-                            #     return await set_custom_time_two_level(root_channel, root_user)
-                            # except Exception as e:
-                            #     print("월/일 상호작용 에러발생!\n에러내용 : {}".format(e))
-                            #     return None
                 else:
-                    hour_error = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
-                    await asyncio.sleep(2)
-                    await hour_error.delete()
+                    print_input_error(root_channel)
                     return await set_custom_time_two_level(root_channel, root_user)
             # 3. 4자리
             elif(len(hour_minute_str) == 4):
                 hour = int(hour_minute_str[0:2])
                 minute = int(hour_minute_str[2:4])
                 if(hour < 0 or hour > 23):
-                    hour_error = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
-                    await asyncio.sleep(2)
-                    await hour_error.delete()
+                    print_input_error(root_channel)
                     await set_custom_time_two_level(root_channel, root_user)
                 elif(minute < 0 or minute > 60):
-                    minute_error = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
-                    await asyncio.sleep(2)
-                    await minute_error.delete()
+                    print_input_error(root_channel)
                     await set_custom_time_two_level(root_channel, root_user)
                     
         except Exception as e :
             print("시/분 파싱부분 에러발생!\n 에러명 : {}".format(e))
-            error_message = await root_channel.send("시간 형식이 잘못되었습니다.\n다시 입력받겠습니다!")
-            await asyncio.sleep(2)
-            await error_message.delete()
+            print_input_error(root_channel)
             await set_custom_time_two_level(root_channel, root_user)
             
             
@@ -608,34 +491,32 @@ async def set_custom_time_two_level(root_channel, root_user):
     return time_instance
     
 # 팟 embed 생성 함수
-def make_pot_embed(schedule):
-    embed = discord.Embed(title="*팟 모집중!*", color=0xf88379)
-    embed.add_field(name="팟을 연 사람", value=schedule.name(), inline=False)
-    embed.add_field(name="어떤 게임?", value=schedule.what, inline=False)
-    embed.add_field(name="몇시에 할까요?", value=schedule.when.strftime("%Y년 %m월 %d일 %H시 %M분"), inline=False)
-    embed.add_field(name="누가 참여하나요?", value=schedule.display_participant(), inline=False)
-    embed.set_footer(text='참여는 밑의 👍를 눌러주세요!')
+def make_pot_embed(schedule, ended=False):
+    if not ended:
+        embed = discord.Embed(title="*팟 모집중!*", color=0xf88379)
+        embed.add_field(name="팟을 연 사람", value=schedule.name(), inline=False)
+        embed.add_field(name="어떤 게임?", value=schedule.what, inline=False)
+        embed.add_field(name="몇시에 할까요?", value=schedule.when.strftime("%Y년 %m월 %d일 %H시 %M분"), inline=False)
+        embed.add_field(name="누가 참여하나요?", value=schedule.display_participant(), inline=False)
+        embed.set_footer(text='참여는 밑의 👍를 눌러주세요!')
+    else:
+        embed = discord.Embed(title="*마감된 팟!*", color=0xf88379)
+        embed.add_field(name="팟을 연 사람", value=schedule.name(), inline=False)
+        embed.add_field(name="어떤 게임?", value=schedule.what, inline=False)
+        embed.add_field(name="몇시에 할까요?", value=schedule.when.strftime("%Y년 %m월 %d일 %H시 %M분"), inline=False)
+        embed.add_field(name="누가 참여하나요?", value=schedule.display_participant(), inline=False)
+        embed.set_footer(text='마감된 팟의 추가 참여는 불가해요😢')
     return embed
 
-def make_ended_pot_embed(schedule):
-    embed = discord.Embed(title="*마감된 팟!*", color=0xf88379)
-    embed.add_field(name="팟을 연 사람", value=schedule.name(), inline=False)
-    embed.add_field(name="어떤 게임?", value=schedule.what, inline=False)
-    embed.add_field(name="몇시에 할까요?", value=schedule.when.strftime("%Y년 %m월 %d일 %H시 %M분"), inline=False)
-    embed.add_field(name="누가 참여하나요?", value=schedule.display_participant(), inline=False)
-    embed.set_footer(text='마감된 팟의 추가 참여는 불가해요😢')
-    return embed
 # 팟 추가
-async def new_schedule(root_channel, time, root_user): #time = "yyyymmddHHMM", root_user = 밑에 root_user
+async def new_schedule(root_channel, time, root_user): #time = datetime.datetime, root_user = 밑에 root_user
     
     print("팟 추가 함수 접근")
     global schedules
     new = schedule.schedule()
     new.set_when(time) #시간
     
-    #여기가 문제인가?
     new.set_who(user_custom.user(root_user.name, root_user.id)) #팟 만든 사람
-    # new.add_participant(user_custom.user(root_user.name, root_user.id))#참여자에 만든사람 기본 탑재
     print(new.participant)
     
     #본인확인
@@ -703,10 +584,7 @@ async def on_reaction_add(reaction, user):
         await msg.delete() # 보낸 메시지 삭제
         await reaction.message.delete()
         time_str = await set_custom_time_two_level(root_channel, user)
-        # time_str = await set_custom_time(root_channel, user)
         await new_schedule(root_channel, time_str, user)
-        # time_str = get_time(1)
-        # await new_schedule(root_channel, time_str, user)
     if str(reaction.emoji) == "👍": #팟 인원 추가!
         for schedule in schedules:
             if(reaction.message.id == schedule[0].id):
@@ -717,8 +595,7 @@ async def on_reaction_add(reaction, user):
                 schedule[1].add_participant(new_participant)
                 embed = make_pot_embed(schedule[1])
                 await reaction.message.edit(embed=embed)
-        # TODO
-        # 구현하기
+
     return None
 ############################################################################
 
@@ -729,15 +606,13 @@ async def on_raw_reaction_remove(raw_reaction_event):
     ###############################################
     # raw말고 on_reaction_remove는 왜 반응이 없을까? # -> cache 뮈시기가 있는데... 해석해야함
     ###############################################
-    # print("반응 제거 확인")
-    # print("👍")
+
     if str(raw_reaction_event.emoji) == '👍':
         #반응이 삭제되었을 때!
         message_id = raw_reaction_event.message_id
         user_id = raw_reaction_event.user_id
         for schedule in schedules:
             if(raw_reaction_event.message_id == schedule[0].id):
-                # print("팟 찾음")
                 delete_participant = user_custom.user("Jone Doe", user_id) #이름은 상관X id만 있으면 됨
                 schedule[1].delete_participant(delete_participant)
                 embed = make_pot_embed(schedule[1])
@@ -817,35 +692,17 @@ async def my_background_task():
             schedules[i][0] = new_msg
             
         elif remain_minute == 0 and not schedules[i][1].ended: # 마감!!
+            # 마감 되었다고 상태 바꾸기
+            schedules[i][1].ended = True
             # 해당 메시지 embed 가져와서
-            embed = make_ended_pot_embed(schedules[i][1])
+            embed = make_pot_embed(schedules[i][1], schedules[i][1].ended)
             # 팟 마감 남은시간 메시지 추가하고
             content = "팟이 마감되었어요!\n메시지는 5분 후 사라져요!"
             # 메시지를 보낸 다음에
             new_msg = await schedules[i][0].channel.send(content=content, embed=embed)
-            # await new_msg.add_reaction("👍")
             # 기존 메시지 삭제
             await schedules[i][0].delete()
             # 기존 메시지에 들어가는 곳에 new_msg로 갈아끼우기
             schedules[i][0] = new_msg
-            # 마감 되었다고 상태 바꾸기
-            schedules[i][1].ended = True
 
 client.run(token) # 구동
-
-"""
-        msg = message.channel.send("Sample message")
-        await msg.add_reaction('🙌')
-        
-        def check_emoji(reaction, user):
-            global msg
-            return reaction.emoji == '🙌' and reaction.message.id == msg.id and user.bot == False
-        
-        try:
-            reaction, user = await client.wait_for(event='reaction_add', timeout=60.0, check=check_emoji)
-            # some action code when get emoji successfully
-            pass
-        except asyncio.TimeoutError:
-            # some action code when get emoji timeout
-            return
-"""
